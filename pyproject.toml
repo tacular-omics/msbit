@@ -1,0 +1,59 @@
+[project]
+name = "msbit"
+version = "0.1.0"
+description = "Bitmap-based similarity search for peptide mass spectrometry."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "numba>=0.64.0",
+    "numpy>=2.4.2",
+]
+authors = [
+    { name = "Patrick Garrett", email = "pgarrett@scripps.edu" }
+]
+maintainers = [
+    { name = "Patrick Garrett", email = "pgarrett@scripps.edu" }
+]
+license = "MIT"
+keywords = ["mass spectrometry", "proteomics", "bitmap", "similarity search", "peptide"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/msbit"]
+
+[tool.uv]
+package = true
+dev-dependencies = [
+    "matplotlib>=3.10.8",
+    "polars>=1.38.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=6.0",
+    "ruff>=0.14.11",
+    "ty>=0.0.11",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+
