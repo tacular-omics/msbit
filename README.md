@@ -68,7 +68,21 @@ just test      # pytest
 ## Benchmarks
 
 ```bash
-python run.py          # CPU benchmark
-python gpu_bench.py    # GPU benchmark
-python plot_results.py # Visualize results
+python bench.py        # runs CPU + GPU (if CUDA), writes benchmark_results.csv / .png
 ```
+
+### Ballpark throughput
+
+Spectra scored per second for a single query against a peptide database of `N` entries, top-10 search. Numbers are `1 / time_per_query_s` from `benchmark_results.csv` / `benchmark_results_gpu.csv` (best of 3 trials, 10 queries each). Treat as order-of-magnitude — actual throughput depends on hardware, CUDA driver, and bitmap density.
+
+Bitmap width = 50 × uint64 (3,200 bits per spectrum, ~19 MB per 100k peptides):
+
+| Database size | CPU (spectra/s) | GPU (spectra/s) |
+|---:|---:|---:|
+|  10,000  | ~6,200 | ~2,500 |
+|  50,000  | ~3,200 | ~1,300 |
+| 100,000  | ~1,600 | ~900   |
+| 250,000  | ~550   | ~520   |
+| 500,000  | ~300   | ~290   |
+
+Wider bitmaps (more ion bins) reduce throughput roughly linearly; narrower bitmaps run faster. At this array size the CPU (Numba popcount) is competitive with the GPU because kernel-launch overhead dominates per-query cost — the GPU wins more clearly on wider bitmaps and large query batches via `GpuBitmapIndex`. The full sweep across `array_size ∈ {10, 25, 50, 100, 200, 500}` and `mat_size ∈ {10k … 500k}` is in `benchmark_results.csv` and visualised in `benchmark_results.png`.
