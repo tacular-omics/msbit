@@ -68,7 +68,32 @@ just test      # pytest
 ## Benchmarks
 
 ```bash
-python run.py          # CPU benchmark
-python gpu_bench.py    # GPU benchmark
-python plot_results.py # Visualize results
+python bench.py        # runs CPU + GPU (if CUDA), writes benchmark_results.csv / .png
 ```
+
+### Ballpark throughput
+
+Two metrics matter and they're easy to confuse:
+
+- **spectra/s** — how many query spectra you can score per second against a fixed DB. This is `1 / time_per_query_s`. It's what dictates "how long will my search take?".
+- **M comparisons/s** — millions of peptide×spectrum scores per second, i.e. `mat_size / time_per_query_s / 1e6`. This is the raw bitmap-matching throughput and is what's stored as `throughput_M_per_s` in the CSVs.
+
+They're related by DB size: `spectra/s = (M comparisons/s × 1e6) / mat_size`. So 555 M comparisons/s against a 100k DB = 5,550 underlying scores done per millisecond, which works out to ~1,600 whole spectra processed per second. Both numbers are real; they answer different questions.
+
+Single-query top-10 search, bitmap width = 50 × uint64 (3,200 bits per spectrum, ~19 MB per 100k peptides), best of 3 trials × 10 queries:
+
+| DB size | CPU spectra/s | CPU M comp/s | GPU spectra/s | GPU M comp/s |
+|---:|---:|---:|---:|---:|
+|  10,000  | ~6,200 |  ~62 | ~2,500 |  ~25 |
+|  50,000  | ~3,200 | ~159 | ~1,300 |  ~64 |
+| 100,000  | ~1,600 | ~158 |   ~900 |  ~91 |
+| 250,000  |   ~550 | ~137 |   ~520 | ~129 |
+| 500,000  |   ~300 | ~151 |   ~290 | ~147 |
+
+A few caveats worth knowing before reading too much into these:
+
+- `bench.py` calls `index.search(q)` in a plain Python `for` loop — per-call dispatch overhead is included. There is currently no batched-query API, so GPU launch overhead (~0.4 ms per call) dominates at this scale. A batched kernel would substantially raise GPU spectra/s.
+- Queries are drawn from the database itself (`bitmaps[:N_QUERIES]`), so query popcount matches DB popcount exactly. Real spectra are typically sparser.
+- Treat as order-of-magnitude — actual throughput depends on hardware, CUDA driver, and bitmap density.
+
+Wider bitmaps (more ion bins) reduce spectra/s roughly linearly. The full sweep across `array_size ∈ {10, 25, 50, 100, 200, 500}` and `mat_size ∈ {10k … 500k}` is in `benchmark_results.csv` and visualised in `benchmark_results.png`.
