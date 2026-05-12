@@ -1,6 +1,8 @@
 """mzML -> sagepy presearch candidates + per-spectrum timing.
 
-Uses the same digest params as build_db.py so candidates are comparable.
+Rebuilds the IndexedDatabase from the same FASTA via paper.sage_db so
+the peptide universe matches build_db.py exactly, then calls
+IndexedDatabase.query() per spectrum.
 
 Usage: python -m paper.run_sagepy <fasta> <mzml> <out.parquet>
 """

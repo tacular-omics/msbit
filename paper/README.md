@@ -22,15 +22,18 @@ just paper-all
 
 | File | Purpose |
 |---|---|
-| `digest.py` | Tryptic digest from FASTA (own implementation, no pyteomics) |
-| `fragments.py` | Monoisotopic peptide + b/y ion masses |
-| `build_db.py` | FASTA -> BitmapIndex `.npz` + peptide/mass arrays |
+| `sage_db.py` | Wraps `SageSearchConfiguration` -> `IndexedDatabase`; shared digest + fragment universe for both pipelines |
+| `build_db.py` | sagepy DB -> msbit `BitmapIndex` `.npz` + peptide/mass arrays |
 | `run_msbit.py` | mzML -> msbit candidates + per-spectrum timing |
-| `run_sagepy.py` | mzML -> sagepy presearch candidates + timing |
+| `run_sagepy.py` | Same FASTA -> sagepy presearch candidates + timing (uses `sage_db`) |
 | `compare.py` | recall@K curves + timing aggregate |
 | `figures.py` | Final figure for the manuscript |
 | `download.py` | Fetch FASTA + test mzML |
 | `data/` | Inputs and intermediates (gitignored) |
+
+Sagepy provides the tryptic digest, Cam-C application, and b/y fragment-mz
+arrays — no hand-rolled mass tables, and both tools see byte-identical
+peptide+fragment inputs.
 
 ## Experimental parameters
 

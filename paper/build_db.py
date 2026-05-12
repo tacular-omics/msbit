@@ -1,4 +1,7 @@
-"""FASTA -> BitmapIndex .npz + peptides.npy + masses.npy.
+"""FASTA -> BitmapIndex .npz + peptides.npy + mono_masses.npy.
+
+Uses sagepy to digest the FASTA and emit b/y fragment ions with
+Cam-C applied; msbit then encodes those into bitmaps.
 
 Usage: python -m paper.build_db <fasta> <out_dir>
 """
