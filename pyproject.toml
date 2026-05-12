@@ -25,9 +25,21 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 
+[project.optional-dependencies]
+# Used only by paper/ — sagepy comparison + mzML reading.
+# Install with: uv sync --extra paper  (or pip install msbit[paper])
+paper = [
+    "sagepy",
+    "mzmlpy @ git+https://github.com/tacular-omics/mzmlpy",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+# required because the paper extra pins mzmlpy by git URL
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/msbit"]

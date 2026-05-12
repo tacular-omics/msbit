@@ -113,3 +113,7 @@ dmypy.json
 # editors
 .vscode/
 .idea/
+
+# paper experiment data (downloads + intermediates)
+paper/data/*
+!paper/data/.gitkeep
