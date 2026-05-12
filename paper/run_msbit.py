@@ -3,9 +3,12 @@
 Loads the msbit BitmapIndex built by paper.build_db, reads every MS2
 spectrum from the mzML, encodes its peak m/z list into a query bitmap
 with the same encoder params, and runs `BitmapIndex.search(top_k)`
-filtered to the precursor tolerance window.
+filtered to a Da-wide precursor window (open search by default — that's
+the regime where a fragment-based prefilter matters).
 
-Usage: python -m paper.run_msbit <db_dir> <mzml> <out.parquet> [--backend cpu|gpu] [--top-k 200]
+Usage:
+    python -m paper.run_msbit <db_dir> <mzml> <out.parquet>
+        [--backend cpu|gpu] [--top-k 200] [--precursor-tol-da 500]
 """
 
 import argparse
@@ -21,7 +24,10 @@ from msbit.encoding import BitmapEncoder
 
 PROTON = 1.00728
 DEFAULT_TOP_K = 200
-PRECURSOR_TOL_PPM = 20.0
+# Open-search default: ±500 Da expands the candidate window from a handful
+# of peptides (narrow ppm search) to ~thousands, which is the regime where
+# msbit's bitmap prefilter actually saves downstream work.
+DEFAULT_PRECURSOR_TOL_DA = 500.0
 
 
 def _encoder_from_params(params: dict) -> BitmapEncoder:
@@ -44,7 +50,7 @@ def _encode_query(encoder: BitmapEncoder, peaks_mz: np.ndarray) -> np.ndarray:
     return encoder.encode(mat)[0]
 
 
-def main(db_dir: Path, mzml: Path, out_path: Path, backend: str, top_k: int) -> None:
+def main(db_dir: Path, mzml: Path, out_path: Path, backend: str, top_k: int, precursor_tol_da: float) -> None:
     import mzmlpy
 
     params = json.loads((db_dir / "params.json").read_text())
@@ -67,11 +73,12 @@ def main(db_dir: Path, mzml: Path, out_path: Path, backend: str, top_k: int) -> 
         prec = ions[0]
         charge = prec.charge_state or 2
         prec_mass = float(prec.selected_ion_mz) * charge - charge * PROTON
-        tol = prec_mass * PRECURSOR_TOL_PPM / 1e6
 
         query = _encode_query(encoder, np.asarray(s.mz, dtype=np.float64))
         t0 = time.perf_counter()
-        result = index.search(query, k=top_k, min_val=prec_mass - tol, max_val=prec_mass + tol)
+        result = index.search(
+            query, k=top_k, min_val=prec_mass - precursor_tol_da, max_val=prec_mass + precursor_tol_da
+        )
         elapsed = time.perf_counter() - t0
 
         rows.append(
@@ -106,5 +113,6 @@ if __name__ == "__main__":
     ap.add_argument("out", type=Path)
     ap.add_argument("--backend", default="cpu", choices=["cpu", "gpu"])
     ap.add_argument("--top-k", type=int, default=DEFAULT_TOP_K)
+    ap.add_argument("--precursor-tol-da", type=float, default=DEFAULT_PRECURSOR_TOL_DA)
     args = ap.parse_args()
-    main(args.db_dir, args.mzml, args.out, args.backend, args.top_k)
+    main(args.db_dir, args.mzml, args.out, args.backend, args.top_k, args.precursor_tol_da)

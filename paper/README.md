@@ -39,10 +39,9 @@ peptide+fragment inputs.
 
 - Trypsin, max 2 missed cleavages, peptide length 7–50.
 - Fixed mod: carbamidomethyl C (+57.02146 Da).
-- Bitmap: log-spaced [100, 2000] Da, `array_length=100` (6,400 bins), 20 ppm.
-- Precursor tolerance: 20 ppm.
+- Bitmap: log-spaced [100, 2000] Da, `array_length=100` (6,400 bins), 20 ppm fragment tolerance.
+- **Precursor tolerance: ±500 Da (open search)** — narrow ppm gives a 1–10 peptide
+  candidate window where there is nothing for any prefilter to do, so the prefilter
+  story only lives at open-search widths. Override via `--precursor-tol-da` on the
+  `run_msbit` / `run_sagepy` CLIs.
 - Top-K compared: K ∈ {1, 10, 50, 100, 200}.
-
-## Status
-
-Skeleton only — every module raises `NotImplementedError`.

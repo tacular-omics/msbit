@@ -6,10 +6,15 @@ precursor mass. This is the same prefilter sage runs internally before
 fragment scoring; isolating it gives a clean prefilter-vs-prefilter
 comparison with msbit (which adds bitmap-overlap ranking on top).
 
+We default to an OPEN search (±500 Da). Narrow ppm tolerance produces
+windows of ~1-10 peptides on a real DB, where there's nothing for any
+prefilter to do — open search expands the window to thousands and is
+the regime where msbit's bitmap ranking actually pays for itself.
+
 Reusing sagepy's IndexedDatabase guarantees the peptide universe is
 byte-identical to build_db.py's msbit input.
 
-Usage: python -m paper.run_sagepy <fasta> <mzml> <out.parquet>
+Usage: python -m paper.run_sagepy <fasta> <mzml> <out.parquet> [--precursor-tol-da 500]
 """
 
 import argparse
@@ -22,10 +27,10 @@ import polars as pl
 from paper.sage_db import SageParams, build_indexed_database
 
 PROTON = 1.00728
-PRECURSOR_TOL_PPM = 20.0
+DEFAULT_PRECURSOR_TOL_DA = 500.0
 
 
-def main(fasta: Path, mzml: Path, out_path: Path) -> None:
+def main(fasta: Path, mzml: Path, out_path: Path, precursor_tol_da: float) -> None:
     import mzmlpy
 
     db = build_indexed_database(SageParams(fasta_path=fasta))
@@ -43,11 +48,10 @@ def main(fasta: Path, mzml: Path, out_path: Path) -> None:
         prec = ions[0]
         charge = prec.charge_state or 2
         prec_mass = float(prec.selected_ion_mz) * charge - charge * PROTON
-        tol = prec_mass * PRECURSOR_TOL_PPM / 1e6
 
         t0 = time.perf_counter()
-        lo = int(np.searchsorted(mono, prec_mass - tol, side="left"))
-        hi = int(np.searchsorted(mono, prec_mass + tol, side="right"))
+        lo = int(np.searchsorted(mono, prec_mass - precursor_tol_da, side="left"))
+        hi = int(np.searchsorted(mono, prec_mass + precursor_tol_da, side="right"))
         elapsed = time.perf_counter() - t0
 
         rows.append(
@@ -79,5 +83,6 @@ if __name__ == "__main__":
     ap.add_argument("fasta", type=Path)
     ap.add_argument("mzml", type=Path)
     ap.add_argument("out", type=Path)
+    ap.add_argument("--precursor-tol-da", type=float, default=DEFAULT_PRECURSOR_TOL_DA)
     args = ap.parse_args()
-    main(args.fasta, args.mzml, args.out)
+    main(args.fasta, args.mzml, args.out, args.precursor_tol_da)
