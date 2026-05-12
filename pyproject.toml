@@ -55,6 +55,10 @@ dev-dependencies = [
     "ty>=0.0.11",
 ]
 
+[tool.pytest.ini_options]
+# paper/ is not installed; expose it on sys.path so tests can import it.
+pythonpath = ["."]
+
 [tool.ruff]
 target-version = "py312"
 line-length = 120
