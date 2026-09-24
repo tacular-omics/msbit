@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "numba>=0.64.0",
     "numpy>=2.4.2",
+    "spxtacular>=0.3.0",
 ]
 authors = [
     { name = "Patrick Garrett", email = "pgarrett@scripps.edu" }

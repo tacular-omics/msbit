@@ -1,13 +1,14 @@
-"""Compute coverage@K + timing aggregates from msbit + sagepy outputs.
+"""Compute recall@K + timing aggregates from msbit + sagepy outputs.
 
 Both outputs are joined on `scan_id`. For each spectrum:
-  window      = sagepy's precursor-window candidate set
-  msbit_topK  = first K of msbit's bitmap-ranked candidates
+  sagepy_topN = sagepy's top-N peptides ranked by hyperscore
+  msbit_topK  = msbit's top-K peptides ranked by bitmap fragment overlap
 
 We report:
-  - window_size distribution
-  - coverage@K = |msbit_topK ∩ window| / |window|, averaged over spectra
-                 (saturates at min(K, |window|) / |window|)
+  - window_size distribution (number of candidates sagepy scored)
+  - recall@K = |msbit_topK ∩ sagepy_topN| / |sagepy_topN|, averaged over spectra
+               i.e. what fraction of sagepy's hyperscore-ranked candidates does
+               msbit's bitmap ranking recover in its top K?
   - timing: median + total per pipeline
 
 Usage: python -m paper.compare <msbit.parquet> <sagepy.parquet> <out.json>
@@ -29,16 +30,16 @@ def main(msbit_path: Path, sagepy_path: Path, out_path: Path) -> None:
     if not len(joined):
         raise SystemExit("[compare] no overlapping scans between msbit and sagepy outputs")
 
-    coverage: dict[int, float] = {}
+    recall: dict[int, float] = {}
     for k in KS:
         per_row = []
         for row in joined.iter_rows(named=True):
-            window = set(row["candidates_sagepy"])
-            if not window:
+            sagepy_top = row["candidates_sagepy"]
+            if not sagepy_top:
                 continue
-            top_k = set(row["candidates"][:k])
-            per_row.append(len(top_k & window) / len(window))
-        coverage[k] = sum(per_row) / max(1, len(per_row))
+            msbit_top_k = set(row["candidates"][:k])
+            per_row.append(len(msbit_top_k & set(sagepy_top)) / len(sagepy_top))
+        recall[k] = sum(per_row) / max(1, len(per_row))
 
     window_sizes = joined["window_size"].to_list()
     summary = {
@@ -50,7 +51,7 @@ def main(msbit_path: Path, sagepy_path: Path, out_path: Path) -> None:
             "min": int(joined["window_size"].min() or 0),
             "p95": float(pl.Series(window_sizes).quantile(0.95) or 0),
         },
-        "coverage_at_k": coverage,
+        "recall_at_k": recall,
         "msbit_time_s": {
             "median": float(joined["time_s"].median() or 0),
             "total": float(joined["time_s"].sum() or 0),

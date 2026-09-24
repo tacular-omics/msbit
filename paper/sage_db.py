@@ -20,9 +20,13 @@ class SageParams:
     max_len: int = 50
     peptide_min_mass: float = 500.0
     peptide_max_mass: float = 5000.0
-    static_mods: tuple[tuple[str, float], ...] = field(default=(("C", 57.0215),))
+    static_mods: tuple[tuple[str, float], ...] = field(default=())
     generate_decoys: bool = False
     bucket_size: int = 8192
+    # Enzyme: ArgC cleaves C-terminally of R, not before P
+    cleave_at: str = "R"
+    restrict: str = "P"
+    c_terminal: bool = True
 
 
 def build_indexed_database(params: SageParams):
@@ -37,9 +41,9 @@ def build_indexed_database(params: SageParams):
         missed_cleavages=params.missed_cleavages,
         min_len=params.min_len,
         max_len=params.max_len,
-        cleave_at="KR",
-        restrict="P",
-        c_terminal=True,
+        cleave_at=params.cleave_at,
+        restrict=params.restrict,
+        c_terminal=params.c_terminal,
     )
     cfg = SageSearchConfiguration(
         fasta=Path(params.fasta_path).read_text(),

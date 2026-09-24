@@ -38,32 +38,25 @@ publish:
 
 # --- paper: sagepy comparison experiment ---
 
-DATA := "paper/data"
+DATA    := "paper/data"
+FASTA   := "/home/patrick-garrett/Data/Natalie/Histones/fasta/human_and_contaminants_filtered_0_05_argc_irt.fasta"
+MZML    := "/home/patrick-garrett/Data/Natalie/Histones2/mzml/dda/argc/20250806_ArgC_DDA_HCD-FT_01.mzML.gz"
 
-# Install [paper] extras and fetch FASTA + test mzML
+# Install [paper] extras
 paper-setup:
     uv sync --extra paper
-    uv run python -m paper.download {{DATA}}
 
-# Build msbit BitmapIndex from FASTA
-paper-build-db:
-    uv run python -m paper.build_db {{DATA}}/human.fasta {{DATA}}/db
-
-# Run msbit presearch (set BACKEND=gpu to test the CUDA path)
-paper-run-msbit backend="cpu":
-    uv run python -m paper.run_msbit {{DATA}}/db {{DATA}}/test.mzML {{DATA}}/msbit_{{backend}}.parquet --backend {{backend}}
-
-# Run sagepy presearch on the same inputs
-paper-run-sagepy:
-    uv run python -m paper.run_sagepy {{DATA}}/human.fasta {{DATA}}/test.mzML {{DATA}}/sagepy.parquet
+# Run both msbit and sagepy on the same in-memory DB (no index mismatch)
+paper-run backend="cpu":
+    uv run python -m paper.run_comparison {{FASTA}} {{MZML}} {{DATA}} --backend {{backend}}
 
 # Compute recall@K + timing aggregate
 paper-compare backend="cpu":
-    uv run python -m paper.compare {{DATA}}/msbit_{{backend}}.parquet {{DATA}}/sagepy.parquet {{DATA}}/compare_{{backend}}.json
+    uv run python -m paper.compare {{DATA}}/msbit.parquet {{DATA}}/sagepy.parquet {{DATA}}/compare_{{backend}}.json
 
 # Final manuscript figure
 paper-figures backend="cpu":
     uv run python -m paper.figures {{DATA}}/compare_{{backend}}.json {{DATA}}/figure_{{backend}}.png
 
-# End-to-end on CPU
-paper-all: paper-setup paper-build-db paper-run-msbit paper-run-sagepy paper-compare paper-figures
+# End-to-end on CPU (uses real ArgC data)
+paper-all: paper-setup paper-run paper-compare paper-figures

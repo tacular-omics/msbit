@@ -1,4 +1,4 @@
-"""Draft figure: window-size CDF, coverage@K, timing bars.
+"""Draft figure: window-size distribution, recall@K, timing bars.
 
 Final manuscript figure will need a real-data run to be meaningful;
 this just lays out the visual structure so the figure exists and
@@ -24,19 +24,19 @@ def main(compare_path: Path, out_path: Path) -> None:
     axes[0].set_title("Precursor-window size")
     axes[0].set_ylabel("# candidate peptides")
 
-    cov = summary["coverage_at_k"]
-    ks = sorted(int(k) for k in cov.keys())
-    axes[1].plot(ks, [cov[str(k)] for k in ks], marker="o")
+    rec = summary["recall_at_k"]
+    ks = sorted(int(k) for k in rec.keys())
+    axes[1].plot(ks, [rec[str(k)] for k in ks], marker="o")
     axes[1].set_xscale("log")
     axes[1].set_xlabel("K (msbit top-K)")
-    axes[1].set_ylabel("coverage@K (mean over spectra)")
-    axes[1].set_title("msbit top-K coverage of precursor window")
+    axes[1].set_ylabel("recall@K (mean over spectra)")
+    axes[1].set_title("msbit top-K recall of sagepy hyperscore ranking")
     axes[1].set_ylim(-0.02, 1.02)
     axes[1].grid(True, alpha=0.3)
 
     msbit_t = summary["msbit_time_s"]["median"] * 1000
     sagepy_t = summary["sagepy_time_s"]["median"] * 1000
-    axes[2].bar(["msbit\n(bitmap top-K)", "sagepy\n(window lookup)"], [msbit_t, sagepy_t])
+    axes[2].bar(["msbit\n(bitmap top-K)", "sagepy\n(full scoring)"], [msbit_t, sagepy_t])
     axes[2].set_ylabel("median time per spectrum (ms)")
     axes[2].set_title(f"Presearch latency  (n={summary['n_spectra']} spectra)")
 
