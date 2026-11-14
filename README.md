@@ -1,99 +1,79 @@
 # msbit
 
-Bitmap-based similarity search for peptide mass spectrometry. Encodes fragmentation ions (b/y) into bit vectors and uses hardware popcount for fast approximate matching against large peptide databases — with both CPU (Numba JIT) and GPU (CUDA) backends.
+A fragment-ion prefilter for peptide identification that was fast and did not
+work well enough. This repo is kept as a record of the measurement, not as a
+maintained package. It has never been on PyPI and there is no release.
 
-## Installation
+## The idea
 
-```bash
-pip install msbit
-```
+Encode each peptide's predicted b and y fragment ions as a bit vector: log-spaced
+bins over [200, 5000] Da, 100 uint64 words per peptide (6,400 bins), one bit set
+per fragment within 20 ppm. Encode a query spectrum the same way. Then the
+fragment overlap between a spectrum and a peptide is the popcount of the AND of
+the two vectors, which is one hardware instruction per 64 candidates. Rank by
+that and hand the top K to a real scorer. Backends: Numba JIT on CPU, CUDA on
+GPU.
 
-For development:
+## What was measured
 
-```bash
-just install
-```
+`paper/` runs msbit and sagepy's own candidate generation over a single
+in-memory sagepy database, so both see the same digest, the same b/y fragment
+m/z arrays, and identical peptide indices. 1000 spectra of an in-house DDA run,
+open search at ±500 Da precursor tolerance, mean candidate window 3,636
+peptides. Aggregate numbers in `paper/data/compare_cpu.json`.
 
-## Usage
+**It was 18× faster.** Median 0.45 ms per spectrum against sagepy presearch's
+8.08 ms; 0.45 s against 10.29 s over the 1000 spectra.
 
-```python
-import numpy as np
-from msbit import MsBit
-from msbit.bitmap import generate_bitmaps
+**Its recall was too low to use.** Fraction of sagepy's own candidates recovered
+in msbit's top K:
 
-# Generate bitmaps for a peptide database (n_peptides × array_size uint64s)
-db = MsBit.random_bitmap_matrix(array_size=50, n_rows=100_000)
+| K | 1 | 10 | 50 | 100 | 200 |
+|---|---|---|---|---|---|
+| recall | 5.1% | 17.1% | 28.8% | 35.6% | 44.7% |
 
-# Encode a query spectrum into a bitmap
-query = db[42]  # or generate_bitmaps(ion_masses, array_size=50)
+A prefilter is only useful if the answer survives it, so it has to keep almost
+everything it is handed. This one loses more than half the right answers even at
+K=200, out of a window of ~3,600. Spending 0.45 ms instead of 8 ms does not buy
+anything if the subsequent scorer no longer has the right peptide to score.
 
-# Full search — returns scores for all database entries
-scores = MsBit().search(query, db)
+**The GPU lost to the CPU.** Best throughput 609 M comparisons/s on the GPU
+against 699 M/s on the CPU, both at the same configuration (10 uint64 words,
+500k peptides) — `benchmark_results_gpu.csv` and `benchmark_results.csv`.
+Popcount is close to free, so the kernel is bound by reading the bitmap matrix
+out of memory, and the card's bandwidth advantage is spent on getting the data
+there. There is also no batched-query API, so per-call launch overhead (~0.4 ms)
+is charged to every spectrum.
 
-# Top-K search on CPU
-indices, scores = MsBit.search_topk(query, db, k=10)
+## Why the idea has a narrow target
 
-# Top-K search on GPU (requires CUDA)
-indices, scores = MsBit.search_topk(query, db, k=10, gpu=True)
-```
+A prefilter only has work to do when the candidate window is large. At a normal
+narrow precursor tolerance, the window is 1 to 10 peptides, and scoring 10
+candidates exactly costs less than approximating them. So the only setting where
+this could pay off is open search, where the window is thousands of peptides —
+and that is the setting where the recall above was measured.
 
-### GPU index for repeated queries
+## Layout
 
-```python
-from msbit import GpuBitmapIndex
+| Path | What |
+|---|---|
+| `src/msbit/` | Bitmap encoding, CPU and CUDA search kernels, `BitmapIndex` |
+| `paper/` | The sagepy comparison, with its parameters and result; see `paper/README.md` |
+| `bench.py` | Throughput sweep over bitmap width and database size |
+| `benchmark_results*.csv` | Recorded sweeps, CPU and GPU |
 
-index = GpuBitmapIndex(db)  # uploads db to GPU once
-for query in queries:
-    indices, scores = index.search_topk(query, top_k=10)
-```
-
-### Generating bitmaps from ion masses
-
-```python
-from msbit.bitmap import generate_bitmaps
-
-# ion_masses: 1D array of m/z values (Da)
-bitmaps = generate_bitmaps(ion_masses, array_size=50, tolerance=0.02, tolerance_mode="Da")
-```
-
-## Development
-
-```bash
-just lint      # ruff check
-just format    # ruff format
-just check     # type check (ty)
-just test      # pytest
-```
-
-## Benchmarks
+## Running it
 
 ```bash
-python bench.py        # runs CPU + GPU (if CUDA), writes benchmark_results.csv / .png
+git clone https://github.com/tacular-omics/msbit
+cd msbit
+just install        # uv sync
+just test
 ```
 
-### Ballpark throughput
+`just lint`, `just ty`, `just test`. The comparison needs the `paper` extra and
+your own FASTA and mzML; `paper/README.md` has the commands.
 
-Two metrics matter and they're easy to confuse:
+## License
 
-- **spectra/s** — how many query spectra you can score per second against a fixed DB. This is `1 / time_per_query_s`. It's what dictates "how long will my search take?".
-- **M comparisons/s** — millions of peptide×spectrum scores per second, i.e. `mat_size / time_per_query_s / 1e6`. This is the raw bitmap-matching throughput and is what's stored as `throughput_M_per_s` in the CSVs.
-
-They're related by DB size: `spectra/s = (M comparisons/s × 1e6) / mat_size`. So 555 M comparisons/s against a 100k DB = 5,550 underlying scores done per millisecond, which works out to ~1,600 whole spectra processed per second. Both numbers are real; they answer different questions.
-
-Single-query top-10 search, bitmap width = 50 × uint64 (3,200 bits per spectrum, ~19 MB per 100k peptides), best of 3 trials × 10 queries:
-
-| DB size | CPU spectra/s | CPU M comp/s | GPU spectra/s | GPU M comp/s |
-|---:|---:|---:|---:|---:|
-|  10,000  | ~6,200 |  ~62 | ~2,500 |  ~25 |
-|  50,000  | ~3,200 | ~159 | ~1,300 |  ~64 |
-| 100,000  | ~1,600 | ~158 |   ~900 |  ~91 |
-| 250,000  |   ~550 | ~137 |   ~520 | ~129 |
-| 500,000  |   ~300 | ~151 |   ~290 | ~147 |
-
-A few caveats worth knowing before reading too much into these:
-
-- `bench.py` calls `index.search(q)` in a plain Python `for` loop — per-call dispatch overhead is included. There is currently no batched-query API, so GPU launch overhead (~0.4 ms per call) dominates at this scale. A batched kernel would substantially raise GPU spectra/s.
-- Queries are drawn from the database itself (`bitmaps[:N_QUERIES]`), so query popcount matches DB popcount exactly. Real spectra are typically sparser.
-- Treat as order-of-magnitude — actual throughput depends on hardware, CUDA driver, and bitmap density.
-
-Wider bitmaps (more ion bins) reduce spectra/s roughly linearly. The full sweep across `array_size ∈ {10, 25, 50, 100, 200, 500}` and `mat_size ∈ {10k … 500k}` is in `benchmark_results.csv` and visualised in `benchmark_results.png`.
+MIT. See `LICENSE`.
