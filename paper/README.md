@@ -59,6 +59,8 @@ Taken from the code, not from notes: `sage_db.py` (`SageParams`) and
 - msbit top-K = 200; sagepy reports its top 200 by hyperscore; minimum 5 matched
   peaks; first 1000 spectra of the run.
 - recall@K reported at K ∈ {1, 10, 50, 100, 200} (`compare.py`, `KS`).
+- Produced with sagepy 0.4.5 and spxtacular 0.3.0, the versions the `[paper]`
+  extra pins.
 
 ## Result
 
