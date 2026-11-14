@@ -113,3 +113,8 @@ dmypy.json
 # editors
 .vscode/
 .idea/
+
+# paper experiment data (downloads + intermediates); the aggregate result is kept
+paper/data/*
+!paper/data/.gitkeep
+!paper/data/compare_cpu.json
