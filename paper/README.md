@@ -44,8 +44,13 @@ tables.
 
 ## Experimental parameters
 
-Taken from the code, not from notes: `sage_db.py` (`SageParams`) and
-`run_comparison.py` (module constants and CLI defaults).
+The published numbers were produced by `run_comparison.py`, and the parameters
+below are read from it and from `sage_db.py` (`SageParams`), not from notes.
+`build_db.py` is a second, standalone path with different constants of its own
+(log-spaced bins over [100, 2000] Da at `build_db.py:21-23`), and it produced
+nothing that is reported here; a `data/db/params.json` left over from a
+`build_db.py` run therefore records that path, not this one, and does not
+describe the result below.
 
 - Digest: cleave C-terminally of R, not before P (ArgC), max 2 missed cleavages,
   peptide length 7–50, peptide mass 500–5000 Da, no decoys.
@@ -71,6 +76,8 @@ Taken from the code, not from notes: `sage_db.py` (`SageParams`) and
 - Recall of sagepy's own candidates: 5.1% @1, 17.1% @10, 28.8% @50, 35.6% @100,
   44.7% @200.
 
-The speed is real and the recall is not good enough: a prefilter has to keep
-almost everything, and this one loses more than half the right answers even at
-K=200.
+Recall here is agreement with sagepy's candidate generation, not with confirmed
+identifications: `compare.py` divides by sagepy's own candidate set. The speed
+is real and the recall is still not good enough — a prefilter has to keep almost
+everything it is handed, and at K=200 this one recovers less than half of the
+candidates sagepy would have gone on to score.

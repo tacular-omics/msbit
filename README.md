@@ -32,10 +32,13 @@ in msbit's top K:
 |---|---|---|---|---|---|
 | recall | 5.1% | 17.1% | 28.8% | 35.6% | 44.7% |
 
-A prefilter is only useful if the answer survives it, so it has to keep almost
-everything it is handed. This one loses more than half the right answers even at
-K=200, out of a window of ~3,600. Spending 0.45 ms instead of 8 ms does not buy
-anything if the subsequent scorer no longer has the right peptide to score.
+Recall here is agreement with sagepy's candidate generation, not with confirmed
+identifications: `compare.py` divides by sagepy's own candidate set. That does
+not rescue the result. A prefilter is only useful if what the scorer needs
+survives it, so it has to keep almost everything it is handed, and at K=200, out
+of a window of ~3,600 peptides, this one recovers less than half of the
+candidates sagepy would have gone on to score. Spending 0.45 ms instead of 8 ms
+buys nothing if the scorer never receives the peptide it would have picked.
 
 **The GPU lost to the CPU.** Best throughput 609 M comparisons/s on the GPU
 against 699 M/s on the CPU, both at the same configuration (10 uint64 words,
@@ -71,9 +74,6 @@ just install        # uv sync
 just test
 ```
 
-`just lint`, `just ty`, `just test`. The comparison needs the `paper` extra and
-your own FASTA and mzML; `paper/README.md` has the commands.
-
-## License
-
-MIT. See `LICENSE`.
+Also `just lint` and `just ty`. The comparison needs the `paper` extra and your
+own FASTA and mzML; `paper/README.md` has the commands. MIT licensed, see
+`LICENSE`.
