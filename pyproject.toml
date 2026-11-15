@@ -32,9 +32,16 @@ classifiers = [
 # recorded in paper/data/compare_cpu.json. sagepy is pre-1.0 and its digest and
 # hyperscore are both sides of the comparison, so an open floor here would let
 # two different results both call themselves this experiment.
+# mzmlpy 0.4.0 is the version that produced those numbers too, and the bound is
+# not optional: spxtacular 0.3.0 declares `mzmlpy>=0.4.0` with no upper bound,
+# and mzmlpy renamed `Spectrum.charge` to `charge_array` after 0.4.0, so
+# spxtacular 0.3.0's MzmlReader raises AttributeError on the first spectrum of
+# any file against a current mzmlpy. Without this line the extra installs but
+# paper/run_comparison.py cannot read an mzML at all.
 paper = [
     "sagepy>=0.4.5,<0.5",
     "spxtacular>=0.3.0,<0.4",
+    "mzmlpy>=0.4,<0.5",
 ]
 
 [build-system]
