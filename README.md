@@ -20,7 +20,11 @@ GPU.
 in-memory sagepy database, so both see the same digest, the same b/y fragment
 m/z arrays, and identical peptide indices. 1000 spectra of an in-house DDA run,
 open search at ±500 Da precursor tolerance, mean candidate window 3,636
-peptides. Aggregate numbers in `paper/data/compare_cpu.json`.
+peptides. Aggregate numbers in `paper/data/compare_cpu.json`. The original run
+used uncommitted code, so its parameters were re-established by rerunning all
+four candidate configurations on 2026-11-14; exactly one reproduces the
+published numbers exactly, and it is the shipped default. `paper/README.md` has
+the detail.
 
 **It was 18× faster.** Median 0.45 ms per spectrum against sagepy presearch's
 8.08 ms; 0.45 s against 10.29 s over the 1000 spectra.

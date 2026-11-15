@@ -46,11 +46,25 @@ tables.
 
 The published numbers were produced by `run_comparison.py`, and the parameters
 below are read from it and from `sage_db.py` (`SageParams`), not from notes.
-`build_db.py` is a second, standalone path with different constants of its own
-(log-spaced bins over [100, 2000] Da at `build_db.py:21-23`), and it produced
-nothing that is reported here; a `data/db/params.json` left over from a
-`build_db.py` run therefore records that path, not this one, and does not
-describe the result below.
+
+**Established by rerun on 2026-11-14, not by reading the repository.** The run
+that produced `data/compare_cpu.json` on 2026-05-12 used code that was never
+committed, so its bitmap range and static-modification setting were recorded
+nowhere and the file timestamps actively mislead: a `data/db/params.json` left
+behind that morning records a different path, with carbamidomethyl C and a
+[100, 2000] Da bitmap, and an earlier pipeline of `run_msbit.py` and
+`run_sagepy.py` existed at that point and was later deleted. To settle it, all
+four combinations of bitmap range {[100, 2000], [200, 5000]} and static mods
+{Cam-C, none} were rerun on the original inputs. Exactly one reproduces the
+published result, exactly, at full float precision on every recall value and
+every window statistic: **[200, 5000] Da with no static modifications**, which
+are the current `run_comparison.py` defaults. So the code in this repository
+today reproduces its own published numbers, and the parameters below are the
+measured ones.
+
+`build_db.py` remains a second, standalone path with different constants of its
+own (log-spaced bins over [100, 2000] Da at `build_db.py:21-23`) and produced
+nothing reported here.
 
 - Digest: cleave C-terminally of R, not before P (ArgC), max 2 missed cleavages,
   peptide length 7–50, peptide mass 500–5000 Da, no decoys.
