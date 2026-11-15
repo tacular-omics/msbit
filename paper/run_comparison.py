@@ -178,22 +178,25 @@ def main(
             t0 = time.perf_counter()
             query = _encode_query(encoder, raw_mz)
             result = index.search(
-                query, k=top_k,
+                query,
+                k=top_k,
                 min_val=prec_mass - precursor_tol_da,
                 max_val=prec_mass + precursor_tol_da,
                 min_hits=min_matched_peaks,
             )
             msbit_time = time.perf_counter() - t0
 
-            msbit_rows.append({
-                "scan_id": scan_id,
-                "precursor_mass": prec_mass,
-                "charge": charge,
-                "candidates": result.indices.tolist(),
-                "matches": result.matches.tolist(),
-                "pvalues": result.pvalues.tolist(),
-                "time_s": msbit_time,
-            })
+            msbit_rows.append(
+                {
+                    "scan_id": scan_id,
+                    "precursor_mass": prec_mass,
+                    "charge": charge,
+                    "candidates": result.indices.tolist(),
+                    "matches": result.matches.tolist(),
+                    "pvalues": result.pvalues.tolist(),
+                    "time_s": msbit_time,
+                }
+            )
 
             # --- sagepy presearch ---
             spectrum = _build_processed_spectrum(raw_mz, raw_intensity, scan_id, prec_mz, charge)
@@ -209,14 +212,16 @@ def main(
             hi = int(np.searchsorted(mono, prec_mass + precursor_tol_da, side="right"))
             window_size = hi - lo
 
-            sagepy_rows.append({
-                "scan_id": scan_id,
-                "precursor_mass": prec_mass,
-                "charge": charge,
-                "candidates": sage_candidates,
-                "window_size": window_size,
-                "time_s": sagepy_time,
-            })
+            sagepy_rows.append(
+                {
+                    "scan_id": scan_id,
+                    "precursor_mass": prec_mass,
+                    "charge": charge,
+                    "candidates": sage_candidates,
+                    "window_size": window_size,
+                    "time_s": sagepy_time,
+                }
+            )
 
     msbit_df = pl.DataFrame(msbit_rows)
     sagepy_df = pl.DataFrame(sagepy_rows)
@@ -253,8 +258,14 @@ if __name__ == "__main__":
     ap.add_argument("--max-spectra", type=int, default=DEFAULT_MAX_SPECTRA)
     args = ap.parse_args()
     main(
-        args.fasta, args.mzml, args.out_dir,
-        args.backend, args.top_k, args.precursor_tol_da,
-        args.fragment_tol_ppm, args.report_psms, args.min_matched_peaks,
+        args.fasta,
+        args.mzml,
+        args.out_dir,
+        args.backend,
+        args.top_k,
+        args.precursor_tol_da,
+        args.fragment_tol_ppm,
+        args.report_psms,
+        args.min_matched_peaks,
         args.max_spectra,
     )

@@ -60,9 +60,7 @@ def test_no_static_mods_by_default(tmp_path: Path) -> None:
 
     # And the mod is applied when asked for, so this is a default and not a
     # missing feature: 4 cysteines x 57.0215 Da.
-    with_mod = build_indexed_database(
-        SageParams(fasta_path=fasta, static_mods=(("C", 57.0215),))
-    )
+    with_mod = build_indexed_database(SageParams(fasta_path=fasta, static_mods=(("C", 57.0215),)))
     peps2 = list(with_mod.peptides_as_string())
     mono2 = np.asarray(with_mod.mono_masses())
     assert abs(mono2[peps2.index("GIVEQCCTSICSLYQLENYCN")] - 2610.086) < 0.01
