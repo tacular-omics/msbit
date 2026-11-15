@@ -64,14 +64,14 @@ and that is the setting where the recall above was measured.
 
 The same bit vectors were tried at run level: one fixed 8 kB sketch per LC-MS run,
 compared by popcount, to tell runs apart without identification. Within one
-experiment it worked — in-house replicate pairs separated from other preparations
+experiment it worked. In-house replicate pairs separated from other preparations
 of the same material at AUC 0.985, against 0.82 from sketch size alone. Across
-instruments it did not. Over 351 pairs of PXD034932 its distances reached Spearman
-rho of -0.32 against compareMS2, where 0.90 was fixed in advance, and it did not
-recover the fraction ordering of PXD001468. The measured cause is the 0.01 Da
-fragment bins: far finer than ion-trap accuracy, so two ion-trap runs of one
-sample share almost no tokens. compareMS2 also scores a pair in 2.4 s, leaving
-little speed to win.
+instruments it did not. Of 351 PXD034932 pairs, compareMS2 found matches for 138;
+on those the Spearman rho was -0.32, and +0.12 over all 351, where 0.90 was fixed
+in advance. The fraction ordering of PXD001468 was not recovered either. The
+measured cause is the 0.01 Da fragment bins, far finer than ion-trap accuracy, so
+two ion-trap runs of one sample share almost no tokens. compareMS2 also scores a
+pair in 2.4 s, leaving little speed to win.
 
 ## Layout
 
