@@ -60,6 +60,19 @@ candidates exactly costs less than approximating them. So the only setting where
 this could pay off is open search, where the window is thousands of peptides —
 and that is the setting where the recall above was measured.
 
+## Second attempt: one sketch per run, also negative
+
+The same bit vectors were tried at run level: one fixed 8 kB sketch per LC-MS run,
+compared by popcount, to tell runs apart without identification. Within one
+experiment it worked — in-house replicate pairs separated from other preparations
+of the same material at AUC 0.985, against 0.82 from sketch size alone. Across
+instruments it did not. Over 351 pairs of PXD034932 its distances reached Spearman
+rho of -0.32 against compareMS2, where 0.90 was fixed in advance, and it did not
+recover the fraction ordering of PXD001468. The measured cause is the 0.01 Da
+fragment bins: far finer than ion-trap accuracy, so two ion-trap runs of one
+sample share almost no tokens. compareMS2 also scores a pair in 2.4 s, leaving
+little speed to win.
+
 ## Layout
 
 | Path | What |
